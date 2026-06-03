@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "tsc --noEmit",
+  "installCommand": "cd ../.. && pnpm install",
   "outputDirectory": ".",
   "functions": {
     "api/index.ts": {
