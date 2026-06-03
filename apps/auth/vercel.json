@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "npm install -g pnpm@10.2.0 && cd ../.. && pnpm install",
+  "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "cd ../.. && pnpm --filter @ruteai/auth build",
   "outputDirectory": ".",
   "functions": {
