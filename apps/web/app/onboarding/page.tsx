@@ -2,10 +2,12 @@
 
 import { createCompany } from "./actions";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, User, ArrowRight, Sparkles, Route } from "lucide-react";
 import { toast } from "sonner";
 
 export default function OnboardingPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [nombre, setNombre] = useState("");
   const [empresa, setEmpresa] = useState("");
@@ -31,9 +33,11 @@ export default function OnboardingPage() {
     toast.loading("Configurando tu espacio de trabajo...", { id: "onboarding" });
     
     try {
-      await createCompany(formData);
-      // La redirección sucede en el server action, si llegamos aquí, no hacemos success inmediato
-      // porque la página va a cambiar de ruta automáticamente.
+      const result = await createCompany(formData);
+      if (result?.success) {
+        toast.success("¡Empresa creada! Entrando al dashboard...", { id: "onboarding" });
+        router.push("/dashboard");
+      }
     } catch (error) {
       toast.error("Ocurrió un error al crear la empresa.", { id: "onboarding" });
       setIsLoading(false);

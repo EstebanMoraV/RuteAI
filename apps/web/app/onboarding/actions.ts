@@ -50,5 +50,5 @@ export async function createCompany(formData: FormData) {
     });
   });
 
-  redirect("/dashboard");
+  return { success: true };
 }

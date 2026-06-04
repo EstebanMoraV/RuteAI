@@ -2,20 +2,17 @@
 
 import { Search, Bell } from "lucide-react";
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabaseClient";
 
 export function DashboardHeader() {
   const [nombre, setNombre] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        const meta = user.user_metadata ?? {};
-        const n = (meta.nombre as string | undefined) ?? user.email?.split("@")[0] ?? null;
-        setNombre(n ? n.split(" ")[0] : null);
-      }
-    });
+    fetch("/api/me")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: { nombre?: string } | null) => {
+        if (data?.nombre) setNombre(data.nombre.split(" ")[0]);
+      })
+      .catch(() => null);
   }, []);
 
   return (
