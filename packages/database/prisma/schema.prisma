@@ -41,11 +41,11 @@ model Usuario {
   id       String  @id // UUID de Supabase Auth
   nombre   String
   email    String  @unique
-  rol      String  @default("repartidor") // "encargado" | "repartidor"
+  rol      String  @default("repartidor") // "super_admin" | "encargado" | "repartidor"
   telefono String? // Para notificaciones Twilio
 
-  empresaId String
-  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresaId String?
+  empresa   Empresa? @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   pedidosAsignados Pedido[]    @relation("RepartidorPedidos")
   rutas            Ruta[]      @relation("RepartidorRutas")
