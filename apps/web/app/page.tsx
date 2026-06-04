@@ -120,17 +120,23 @@ export default function LandingPage() {
                 <path d="M84,0 L84,100" stroke="rgba(255,255,255,0.08)" strokeWidth="0.3" />
               </svg>
 
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full">
                 <defs>
                   <linearGradient id="routeGrad" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#f59e0b" />
                     <stop offset="100%" stopColor="#a855f7" />
                   </linearGradient>
-                  <filter id="glow"><feGaussianBlur stdDeviation="1.2" /></filter>
+                  <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="1.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 </defs>
-                <path d="M12,78 C20,68 22,62 26,58 S36,72 40,70 S52,48 55,44 S64,58 68,60 S78,38 82,32 S88,22 90,18" fill="none" stroke="url(#routeGrad)" strokeWidth="0.7" filter="url(#glow)" opacity="0.7" />
-                <path d="M12,78 C20,68 22,62 26,58 S36,72 40,70 S52,48 55,44 S64,58 68,60 S78,38 82,32 S88,22 90,18" fill="none" stroke="url(#routeGrad)" strokeWidth="0.4" strokeDasharray="1.5 1.2" />
-                <circle r="0.9" fill="#f59e0b">
+                <path d="M12,78 C20,68 22,62 26,58 S36,72 40,70 S52,48 55,44 S64,58 68,60 S78,38 82,32 S88,22 90,18" fill="none" stroke="url(#routeGrad)" strokeWidth="0.8" filter="url(#glow)" opacity="0.9" />
+                <path d="M12,78 C20,68 22,62 26,58 S36,72 40,70 S52,48 55,44 S64,58 68,60 S78,38 82,32 S88,22 90,18" fill="none" stroke="url(#routeGrad)" strokeWidth="0.45" strokeDasharray="1.5 1.2" />
+                <circle r="1.1" fill="#f59e0b">
                   <animateMotion dur="6s" repeatCount="indefinite" path="M12,78 C20,68 22,62 26,58 S36,72 40,70 S52,48 55,44 S64,58 68,60 S78,38 82,32 S88,22 90,18" />
                 </circle>
               </svg>

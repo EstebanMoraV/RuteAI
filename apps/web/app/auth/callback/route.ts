@@ -45,13 +45,22 @@ export async function GET(request: Request) {
     } = await supabase.auth.exchangeCodeForSession(code);
 
     if (exchangeError || !user) {
-      console.error(
+      // PKCE verifier missing → email YAS fue confirmado por Supabase antes del redirect.
+      // Redirigir a login con mensaje de éxito en vez de error.
+      const isPKCE = exchangeError?.message?.includes('PKCE code verifier not found');
+
+      console[isPKCE ? 'warn' : 'error'](
         JSON.stringify({
           event: 'oauth.callback.exchange_failed',
           error: exchangeError?.message ?? 'No user returned',
+          isPKCE,
           timestamp: new Date().toISOString(),
         })
       );
+
+      if (isPKCE) {
+        return NextResponse.redirect(`${redirectBase}/login?verified=true`);
+      }
 
       await logAuthEvent({
         userId: 'anonymous',

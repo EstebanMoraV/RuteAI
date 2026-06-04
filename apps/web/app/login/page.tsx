@@ -27,8 +27,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
-    if (errorParam === "oauth_error" || errorParam === "auth_failed") {
-      toast.error("Error al autenticar con Google. Intenta de nuevo.", { id: "oauth-err" });
+    const verifiedParam = searchParams.get("verified");
+    if (verifiedParam === "true") {
+      toast.success("¡Email verificado! Ahora puedes iniciar sesión.", { id: "verified" });
+    } else if (errorParam === "oauth_error" || errorParam === "auth_failed") {
+      toast.error("Error al autenticar. Intenta de nuevo.", { id: "oauth-err" });
     }
   }, [searchParams]);
 

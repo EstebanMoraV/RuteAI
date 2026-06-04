@@ -1,11 +1,34 @@
 "use client";
 
 import { Search, Bell } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabaseClient";
 
 export function DashboardHeader() {
+  const [nombre, setNombre] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const meta = user.user_metadata ?? {};
+        const n = (meta.nombre as string | undefined) ?? user.email?.split("@")[0] ?? null;
+        setNombre(n ? n.split(" ")[0] : null);
+      }
+    });
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/[0.04] bg-zinc-950/70 px-5 backdrop-blur-xl">
-      
+
+      {/* Saludo */}
+      {nombre && (
+        <div className="hidden lg:flex shrink-0 items-center gap-1 text-sm">
+          <span className="text-zinc-500">Hola,</span>
+          <span className="font-medium text-white">{nombre}</span>
+        </div>
+      )}
+
       {/* Search Input */}
       <div className="relative flex-1 max-w-md">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
