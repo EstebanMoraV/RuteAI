@@ -6,7 +6,7 @@
 
 DO $$
 DECLARE
-  v_empresa_id TEXT;
+  v_empresa_id UUID;
 BEGIN
   SELECT id INTO v_empresa_id FROM "Empresa" LIMIT 1;
 

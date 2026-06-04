@@ -95,7 +95,7 @@ export default async function AdminUsuariosPage() {
                 <td className="px-6 py-4">
                   <span className="flex items-center gap-1.5 text-zinc-300 text-xs">
                     <Building2 className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                    {u.empresa.nombre}
+                    {u.empresa?.nombre ?? "—"}
                   </span>
                 </td>
 
