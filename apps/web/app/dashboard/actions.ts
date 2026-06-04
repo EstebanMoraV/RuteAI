@@ -67,18 +67,33 @@ export async function agregarPedidoNuevo(formData: FormData) {
 export async function marcarEnRuta(id: string) {
   if (!id) return;
 
-  // Obtener datos del pedido para la notificación (RF-06)
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { error: "No autenticado" };
+
+  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+
+  // Actualizar estado en el Core Service (fuente de verdad)
+  const response = await fetch(`${coreUrl}/api/v1/orders/${id}/estado`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ estado: "en_ruta" }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({})) as { error?: string };
+    return { error: err.error || "Error al actualizar estado" };
+  }
+
+  // Obtener datos del pedido para notificación Twilio (RF-06)
   const pedido = await prisma.pedido.findUnique({
     where: { id },
     select: { nombreCliente: true, clienteTelefono: true, direccion: true },
   });
 
-  await prisma.pedido.update({
-    where: { id },
-    data:  { estado: "en_ruta" },
-  });
-
-  // Disparar notificación Twilio (async, no bloquea la respuesta)
   if (pedido?.clienteTelefono) {
     void notificarPedidoEnRuta({
       pedidoId:  id,
@@ -95,17 +110,33 @@ export async function marcarEnRuta(id: string) {
 export async function marcarComoEntregado(id: string) {
   if (!id) return;
 
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { error: "No autenticado" };
+
+  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+
+  // Actualizar estado en el Core Service (fuente de verdad)
+  const response = await fetch(`${coreUrl}/api/v1/orders/${id}/estado`, {
+    method: "PATCH",
+    headers: {
+      "Authorization": `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ estado: "entregado" }),
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({})) as { error?: string };
+    return { error: err.error || "Error al actualizar estado" };
+  }
+
+  // Obtener datos del pedido para notificación Twilio (RF-06)
   const pedido = await prisma.pedido.findUnique({
     where: { id },
     select: { nombreCliente: true, clienteTelefono: true, direccion: true },
   });
 
-  await prisma.pedido.update({
-    where: { id },
-    data:  { estado: "entregado", scoreRiesgo: 0 },
-  });
-
-  // Notificación de entrega confirmada (RF-06)
   if (pedido?.clienteTelefono) {
     void notificarPedidoEntregado({
       pedidoId:  id,
@@ -121,9 +152,23 @@ export async function marcarComoEntregado(id: string) {
 
 export async function eliminarPedido(id: string) {
   if (!id) return;
-  await prisma.pedido.delete({
-    where: { id }
+
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { error: "No autenticado" };
+
+  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+
+  const response = await fetch(`${coreUrl}/api/v1/orders/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${session.access_token}` },
   });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({})) as { error?: string };
+    return { error: err.error || "Error al eliminar pedido" };
+  }
+
   revalidatePath("/dashboard");
   return { success: true };
 }

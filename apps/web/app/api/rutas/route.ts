@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabaseServer";
+
+async function proxyToCore(req: NextRequest, endpoint: string) {
+  const supabase = await createClient();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+
+  if (authError || !session) {
+    return NextResponse.json({ success: false, error: "No autorizado" }, { status: 401 });
+  }
+
+  const coreUrl = process.env.CORE_SERVICE_URL;
+  if (!coreUrl && process.env.NODE_ENV === "production") {
+    throw new Error("[CONFIG] CORE_SERVICE_URL no está definido");
+  }
+
+  const url = new URL(`${coreUrl || "http://localhost:3003"}${endpoint}`);
+  req.nextUrl.searchParams.forEach((val, key) => url.searchParams.append(key, val));
+
+  const headers: Record<string, string> = {
+    "Authorization": `Bearer ${session.access_token}`,
+  };
+
+  let body = undefined;
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    headers["Content-Type"] = "application/json";
+    body = await req.text();
+  }
+
+  try {
+    const response = await fetch(url.toString(), { method: req.method, headers, body });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    console.error(`[Proxy /api/rutas] Error conectando a ${url.toString()}:`, error);
+    return NextResponse.json({ success: false, error: "Error interno del servidor" }, { status: 500 });
+  }
+}
+
+// GET /api/rutas?empresaId=xxx → Core GET /api/v1/routes
+export async function GET(req: NextRequest) {
+  return proxyToCore(req, "/api/v1/routes");
+}
+
+// POST /api/rutas → Core POST /api/v1/routes
+export async function POST(req: NextRequest) {
+  return proxyToCore(req, "/api/v1/routes");
+}

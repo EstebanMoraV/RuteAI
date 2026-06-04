@@ -355,18 +355,206 @@ de PrismaClient si no se configura bien el singleton.
 
 ---
 
+---
+
+---
+
+## 🔴 CRÍTICO — Auditoría BFF · Junio 2026
+
+### C-2 · BFF de pedidos incompleto (3 endpoints del Core sin proxy)
+
+**Archivos**:
+- `apps/web/app/api/pedidos/route.ts` (solo cubre GET list y POST)
+- Core: `apps/core/src/routes/orders.route.ts` (tiene 5 endpoints)
+
+**Descripción**:
+El Core Service expone 5 endpoints de órdenes, pero el BFF solo proxea 2.
+Los endpoints faltantes hacen que las mutaciones del dashboard (`marcarEnRuta`,
+`marcarComoEntregado`, `eliminarPedido`, `editarPedido`) bypaseen el Core y
+accedan a Prisma directamente desde `dashboard/actions.ts`.
+
+| Core Service | BFF Web | Estado |
+|---|---|---|
+| `GET /api/v1/orders` | `GET /api/pedidos` | ✅ Existe |
+| `POST /api/v1/orders` | `POST /api/pedidos` | ✅ Existe |
+| `GET /api/v1/orders/:id` | `/api/pedidos/[id]` | ❌ Falta |
+| `PATCH /api/v1/orders/:id/estado` | `/api/pedidos/[id]/estado` | ❌ Falta |
+| `DELETE /api/v1/orders/:id` | `/api/pedidos/[id]` (DELETE) | ❌ Falta |
+
+**Cómo solucionarlo**:
+Crear `apps/web/app/api/pedidos/[id]/route.ts` con GET y DELETE,
+y `apps/web/app/api/pedidos/[id]/estado/route.ts` con PATCH.
+Luego actualizar `dashboard/actions.ts` para usar fetch al BFF en lugar de Prisma.
+
+---
+
+### C-3 · Rutas del Core sin ningún BFF en la web
+
+**Archivos**:
+- `apps/core/src/routes/routes.route.ts` (completo, funcional)
+- Falta: `apps/web/app/api/rutas/route.ts`
+- Afectado: `apps/web/app/dashboard/rutas/page.tsx` (usa Prisma directo)
+
+**Descripción**:
+El Core tiene los endpoints `GET /api/v1/routes`, `POST /api/v1/routes` y
+`PATCH /api/v1/routes/:id/estado`, pero no existe ningún proxy BFF en la web.
+La página de rutas accede directamente a Prisma desde un Server Component.
+
+**Cómo solucionarlo**:
+Crear `apps/web/app/api/rutas/route.ts` con GET y POST,
+y `apps/web/app/api/rutas/[id]/estado/route.ts` con PATCH.
+
+---
+
+### C-4 · Admin de empresas y usuarios sin BFF (bypass total al Core)
+
+**Archivos**:
+- `apps/web/app/admin/actions.ts` — todas las funciones usan Prisma directo
+- `apps/core/src/routes/empresas.route.ts` — endpoints existentes sin consumir
+
+**Descripción**:
+El Core Service tiene `/api/v1/empresas` (GET, POST, PATCH toggle) con control
+de roles `super_admin`, pero el panel de admin de la web no los usa.
+`crearEmpresa`, `editarEmpresa`, `toggleEmpresaEstado`, `eliminarEmpresa`,
+`cambiarRolUsuario` y `eliminarUsuario` van directo a Prisma, saltando la
+lógica de negocio y las validaciones del Core.
+
+**Resuelto (fase 1 — Empresas)**:
+- Core: `EmpresasService` ahora tiene `actualizar` y `eliminar`, y `crear` acepta email.
+- Core: `empresas.route.ts` añade `PATCH /:id` (editar) y `DELETE /:id`.
+- Web: las server actions `crearEmpresa`, `editarEmpresa`, `toggleEmpresaEstado`
+  y `eliminarEmpresa` ahora llaman al Core (con el token del super_admin, que el
+  Core revalida vía `requireRole(["super_admin"])`).
+- Patrón: server actions → fetch directo al Core (igual que pedidos en C-2),
+  no se crea ruta `/api/empresas` porque el consumidor es server-side.
+
+**Pendiente (fase 2 — Usuarios)** · decisión tomada:
+- `cambiarRolUsuario` y `eliminarUsuario` siguen en Prisma directo por ahora.
+- Cuando se implementen: mover al Core, y el borrado debe eliminar TAMBIÉN de
+  Supabase Auth (`supabaseAdmin.auth.admin.deleteUser`) usando
+  `SUPABASE_SERVICE_ROLE_KEY`, para no dejar el usuario huérfano (hoy un usuario
+  borrado de Prisma puede seguir iniciando sesión vía Supabase Auth).
+
+---
+
+## 🟠 ALTO — Auditoría BFF
+
+### A-3 · AI Service /api/optimize sin exposición BFF
+
+**Archivos**:
+- `apps/ai-service/src/routes/optimize.route.ts` (funcional)
+- Falta: `apps/web/app/api/ai/optimize/route.ts`
+- Afectado: botón "Optimizar Rutas con IA" en `apps/web/app/dashboard/pedidos/page.tsx` (no hace nada)
+
+**Descripción**:
+El AI Service tiene `POST /api/optimize` para optimización de rutas con el
+algoritmo de nearest-neighbor, pero no hay proxy BFF. El botón en la UI existe
+pero no tiene acción asignada.
+
+**Cómo solucionarlo**:
+Crear `apps/web/app/api/ai/optimize/route.ts` (proxy con x-api-key al AI Service).
+Conectar el botón del dashboard a este endpoint.
+
+---
+
+### A-4 · `routes.route.ts` del Core sin autenticación
+
+**Archivo**: `apps/core/src/routes/routes.route.ts`
+
+**Descripción**:
+Es el único router del Core sin `requireAuth`. Cualquier cliente puede crear,
+listar o modificar rutas sin estar autenticado si conoce la URL del Core Service.
+
+**Cómo solucionarlo**:
+```typescript
+import { requireAuth } from "../middlewares/auth.middleware";
+routesRouter.use(requireAuth as RequestHandler);
+```
+
+---
+
+### A-5 · Clientes de IA no envían `x-api-key` → score real siempre falla
+
+**Archivos**:
+- `apps/web/lib/aiServiceClient.ts`
+- `apps/web/app/dashboard/ia/page.tsx`
+
+**Descripción**:
+Tras resolver A-2 (el AI Service ahora exige `x-api-key`), los dos consumidores
+server-side del endpoint `/api/score` seguían llamándolo **sin** la cabecera.
+Resultado: el AI Service respondía 401 en cada llamada.
+- `aiServiceClient.ts` (creación de pedidos): caía siempre al fallback heurístico,
+  nunca usaba el microservicio real.
+- `dashboard/ia/page.tsx`: recibía 401 → todos los scores `null` → la página de
+  Predicciones IA se mostraba vacía.
+
+**Cómo se solucionó**:
+Se añadió `'x-api-key': AI_SERVICE_SECRET` a ambos fetch. Ambos son server-side,
+así que la clave nunca se expone al navegador.
+
+**Impacto Vercel**: requiere que `AI_SERVICE_SECRET` esté configurada en el proyecto
+**web** con el mismo valor que en el proyecto **ai-service**.
+
+---
+
+## 🟡 MEDIO — Auditoría BFF
+
+### M-6 · Duplicidad de endpoints de ubicación
+
+**Archivos**:
+- `apps/web/app/api/ubicacion/route.ts` — proxy al Core Service ✅
+- `apps/web/app/api/ubicaciones/route.ts` — acceso directo a Prisma ❌
+
+**Descripción**:
+Existen dos rutas BFF que cubren exactamente la misma funcionalidad (registrar
+y consultar ubicaciones GPS), implementadas de formas distintas. La app mobile
+y el dashboard podrían estar usando distintos endpoints para el mismo recurso.
+
+**Cómo solucionarlo**:
+Eliminar `/api/ubicaciones/route.ts`. Toda la lógica debe pasar por
+`/api/ubicacion` (proxy al Core), que ya maneja GET y POST correctamente.
+
+---
+
+### M-7 · Páginas SSR del dashboard acceden a Prisma directamente
+
+**Archivos**:
+- `apps/web/app/dashboard/pedidos/page.tsx` (Prisma directo)
+- `apps/web/app/dashboard/rutas/page.tsx` (Prisma directo)
+- `apps/web/app/admin/page.tsx` (pendiente revisión)
+
+**Descripción**:
+Los Server Components del dashboard hacen queries a Prisma directamente en lugar
+de consumir el Core Service. Esto no es técnicamente incorrecto (es una ventaja
+de Next.js en monorepo), pero rompe el patrón BFF: si la lógica de negocio en
+el Core cambia, las páginas SSR no lo heredan.
+
+**Decisión recomendada**:
+Mantener Prisma directo solo para **lectura SSR** (performance). Toda escritura
+(crear, editar, cambiar estado, eliminar) debe pasar por el Core vía BFF.
+
+---
+
 ## Checklist de resolución
 
 | ID | Descripción | Severidad | Estado |
 |---|---|---|---|
 | C-1 | BFF no devuelve tokens tras login | 🔴 Crítico | ✅ Resuelto |
+| C-2 | BFF de pedidos incompleto (3 endpoints faltantes) | 🔴 Crítico | ✅ Resuelto |
+| C-3 | Rutas del Core sin BFF en la web | 🔴 Crítico | ✅ Resuelto |
+| C-4 | Admin de empresas sin BFF (bypass al Core) | 🔴 Crítico | 🟡 Empresas ✅ · Usuarios pendiente |
 | A-1 | CORS abierto en Auth y Core | 🟠 Alto | ✅ Resuelto |
 | A-2 | AI Service sin autenticación | 🟠 Alto | ✅ Resuelto |
+| A-3 | AI optimize sin BFF (botón sin acción) | 🟠 Alto | ✅ Resuelto |
+| A-4 | routes.route.ts sin requireAuth | 🟠 Alto | ✅ Resuelto |
+| A-5 | Clientes IA sin x-api-key (score roto) | 🟠 Alto | ✅ Resuelto |
 | M-1 | Timeout ausente en middleware Core | 🟡 Medio | ✅ Resuelto |
 | M-2 | Build command vacío en AI Service | 🟡 Medio | ✅ Resuelto |
 | M-3 | CORE_SERVICE_URL sin implementar | 🟡 Medio | ✅ Resuelto |
 | M-4 | OPENROUTER_API_KEY sin implementar | 🟡 Medio | ✅ Resuelto |
 | M-5 | Fallbacks a localhost sin error explícito | 🟡 Medio | ✅ Resuelto |
+| M-6 | Duplicidad /api/ubicacion vs /api/ubicaciones | 🟡 Medio | ✅ Resuelto |
+| M-7 | Páginas SSR usan Prisma directo para escrituras | 🟡 Medio | ✅ Resuelto (escrituras→Core; lectura SSR sigue en Prisma por diseño) |
 | B-1 | Paquete @ruteai/shared sin usar | 🟢 Bajo | ✅ Resuelto |
 | B-2 | Respuestas BFF inconsistentes | 🟢 Bajo | ✅ Resuelto |
 | B-3 | BFF accede a Prisma directamente | 🟢 Bajo | ✅ Resuelto |

@@ -19,9 +19,10 @@ async function obtenerScoreRiesgo(
 ): Promise<ScoreResultado | null> {
   try {
     const aiUrl = process.env.AI_SERVICE_URL ?? "https://ruteai-ai-service.vercel.app";
+    const aiSecret = process.env.AI_SERVICE_SECRET ?? "";
     const res = await fetch(`${aiUrl}/api/score`, {
       method:  "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-api-key": aiSecret },
       body: JSON.stringify({
         pedidoId,
         lat:              -33.45,   // Santiago por defecto
