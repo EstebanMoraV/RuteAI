@@ -17,10 +17,18 @@ export default async function PedidosPage() {
   });
   if (!usuarioDB?.empresa) redirect("/dashboard");
 
-  const todosLosPedidos = await prisma.pedido.findMany({
-    where: { empresaId: usuarioDB.empresa.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const [todosLosPedidos, repartidores] = await Promise.all([
+    prisma.pedido.findMany({
+      where: { empresaId: usuarioDB.empresa.id },
+      orderBy: { createdAt: "desc" },
+      include: { repartidor: { select: { id: true, nombre: true } } },
+    }),
+    prisma.usuario.findMany({
+      where: { empresaId: usuarioDB.empresa.id, rol: "repartidor" },
+      select: { id: true, nombre: true },
+      orderBy: { nombre: "asc" },
+    }),
+  ]);
 
   const total = todosLosPedidos.length;
 
@@ -49,7 +57,7 @@ export default async function PedidosPage() {
       </div>
 
       {/* Tabla integrada con Filtros */}
-      <PedidosTable pedidos={todosLosPedidos} />
+      <PedidosTable pedidos={todosLosPedidos} repartidores={repartidores} />
       
     </div>
   );

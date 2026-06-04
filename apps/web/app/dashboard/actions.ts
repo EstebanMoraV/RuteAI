@@ -230,6 +230,44 @@ export async function crearEmpresaYUsuario(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+export async function asignarRepartidor(pedidoId: string, repartidorId: string | null) {
+  if (!pedidoId) return { error: "ID de pedido requerido" };
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado" };
+
+  const usuarioDB = await prisma.usuario.findUnique({
+    where: { id: user.id },
+    select: { empresaId: true },
+  });
+  if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa" };
+
+  // Validar que el pedido pertenece a la empresa del usuario
+  const pedido = await prisma.pedido.findFirst({
+    where: { id: pedidoId, empresaId: usuarioDB.empresaId },
+    select: { id: true },
+  });
+  if (!pedido) return { error: "Pedido no encontrado" };
+
+  // Validar que el repartidor pertenece a la misma empresa (si se asigna uno)
+  if (repartidorId) {
+    const rep = await prisma.usuario.findFirst({
+      where: { id: repartidorId, empresaId: usuarioDB.empresaId, rol: "repartidor" },
+      select: { id: true },
+    });
+    if (!rep) return { error: "Repartidor no válido" };
+  }
+
+  await prisma.pedido.update({
+    where: { id: pedidoId },
+    data: { repartidorId: repartidorId ?? null },
+  });
+
+  revalidatePath("/dashboard/pedidos");
+  return { success: true };
+}
+
 export async function obtenerUbicacionRepartidorPublico(pedidoId: string) {
   if (!pedidoId) return { error: "ID de pedido no provisto" };
 
