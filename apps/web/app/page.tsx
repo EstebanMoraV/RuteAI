@@ -74,11 +74,11 @@ export default function LandingPage() {
             </p>
             
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/dashboard" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-400 px-5 py-3 text-sm font-semibold text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:opacity-95 transition">
-                Probar el dashboard <ArrowRight className="h-4 w-4" />
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-400 px-5 py-3 text-sm font-semibold text-black shadow-[0_0_20px_rgba(245,158,11,0.3)] hover:opacity-95 transition">
+                Comenzar gratis <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link href="/super-admin" className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-white/5 px-5 py-3 text-sm font-medium hover:bg-white/10 transition">
-                Ver panel Super Admin
+              <Link href="/login" className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-white/5 px-5 py-3 text-sm font-medium hover:bg-white/10 transition">
+                Iniciar sesión
               </Link>
             </div>
             
