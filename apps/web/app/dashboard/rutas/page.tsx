@@ -19,7 +19,7 @@ export default async function RutasPage() {
   // Cargar pedidos en_ruta de la empresa (paradas activas de hoy)
   const pedidosEnRuta = await prisma.pedido.findMany({
     where: {
-      empresaId: usuarioDB.empresaId,
+      empresaId: usuarioDB.empresa.id,
       estado: { in: ["pendiente", "en_ruta"] },
     },
     orderBy: { createdAt: "asc" },
@@ -28,7 +28,7 @@ export default async function RutasPage() {
 
   // Última ubicación GPS de cada repartidor activo
   const ultimasUbicaciones = await prisma.ubicacion.findMany({
-    where: { empresaId: usuarioDB.empresaId },
+    where: { empresaId: usuarioDB.empresa.id },
     orderBy: { timestamp: "desc" },
     distinct: ["repartidorId"],
     take: 10,
@@ -37,7 +37,7 @@ export default async function RutasPage() {
 
   return (
     <RutasMapaClient
-      empresaId={usuarioDB.empresaId}
+      empresaId={usuarioDB.empresa.id}
       empresaNombre={usuarioDB.empresa.nombre}
       pedidos={pedidosEnRuta}
       ultimasUbicaciones={ultimasUbicaciones}

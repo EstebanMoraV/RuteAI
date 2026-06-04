@@ -23,7 +23,7 @@ export async function agregarPedidoNuevo(formData: FormData) {
     where: { id: user.id },
     select: { empresaId: true }
   });
-  if (!usuarioDB) return { error: "Usuario sin empresa asignada" };
+  if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa asignada" };
 
   // RF-02: Geocodificar la dirección + RF-03: Score IA — en paralelo para minimizar latencia
   const horaActual = new Date().getHours();
@@ -323,7 +323,7 @@ export async function actualizarEmpresa(nombre: string, email: string) {
     where: { id: user.id },
     select: { empresaId: true }
   });
-  if (!usuarioDB) return { error: "Usuario sin empresa" };
+  if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa" };
 
   await prisma.empresa.update({
     where: { id: usuarioDB.empresaId },
@@ -367,7 +367,7 @@ export async function actualizarConfiguracionEmpresa(data: {
     where: { id: user.id },
     select: { empresaId: true, empresa: { select: { configuracion: true } } }
   });
-  if (!usuarioDB) return { error: "Usuario sin empresa" };
+  if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa" };
 
   // Merge con la configuración existente para no perder otros campos
   const configActual = (usuarioDB.empresa?.configuracion as Record<string, unknown>) ?? {};
@@ -409,7 +409,7 @@ export async function actualizarConfiguracionNotificaciones(data: {
     where: { id: user.id },
     select: { empresaId: true, empresa: { select: { configuracion: true } } }
   });
-  if (!usuarioDB) return { error: "Usuario sin empresa" };
+  if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa" };
 
   const configActual = (usuarioDB.empresa?.configuracion as Record<string, unknown>) ?? {};
 
@@ -446,7 +446,7 @@ export async function actualizarConfiguracionIA(data: {
     where: { id: user.id },
     select: { empresaId: true, empresa: { select: { configuracion: true } } }
   });
-  if (!usuarioDB) return { error: "Usuario sin empresa" };
+  if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa" };
 
   const configActual = (usuarioDB.empresa?.configuracion as Record<string, unknown>) ?? {};
 

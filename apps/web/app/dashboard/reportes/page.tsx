@@ -35,7 +35,7 @@ export default async function ReportesPage() {
   let reportesCache: { datos: unknown; fecha: Date }[] = [];
   try {
     reportesCache = await prisma.reporteCache.findMany({
-      where: { empresaId: usuarioDB.empresaId },
+      where: { empresaId: usuarioDB.empresa.id },
       orderBy: { fecha: "desc" },
       take: 30,
     });
@@ -47,7 +47,7 @@ export default async function ReportesPage() {
 
   const pedidosHoy = await prisma.pedido.findMany({
     where: {
-      empresaId: usuarioDB.empresaId,
+      empresaId: usuarioDB.empresa.id,
       createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
     },
     select: { estado: true, scoreRiesgo: true },

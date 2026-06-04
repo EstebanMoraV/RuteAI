@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
       select: { empresaId: true },
     });
 
-    if (!usuarioDB) {
-      return NextResponse.json({ success: false, error: "Usuario no encontrado" }, { status: 404 });
+    if (!usuarioDB?.empresaId) {
+      return NextResponse.json({ success: false, error: "Usuario sin empresa" }, { status: 403 });
     }
 
     const pedido = await prisma.pedido.findFirst({
@@ -99,8 +99,8 @@ export async function PATCH(req: NextRequest) {
       where: { id: user.id },
       select: { empresaId: true },
     });
-    if (!usuarioDB) {
-      return NextResponse.json({ success: false, error: "Usuario no encontrado" }, { status: 404 });
+    if (!usuarioDB?.empresaId) {
+      return NextResponse.json({ success: false, error: "Usuario sin empresa" }, { status: 403 });
     }
 
     // Actualizar el campo correcto según el tipo de evidencia
