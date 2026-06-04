@@ -53,8 +53,8 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px] bg-grid opacity-40 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
+      <section className="relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px] overflow-hidden bg-grid opacity-40 [mask-image:radial-gradient(ellipse_at_top,black,transparent_70%)]" />
         
         <div className="mx-auto grid max-w-7xl gap-12 px-6 pb-24 pt-20 lg:grid-cols-[1.1fr_1fr] lg:pt-28">
           <div>
@@ -106,7 +106,7 @@ export default function LandingPage() {
 
           {/* Right Map Visual (SVG Graphic exact equivalent) */}
           <div className="relative">
-            <div className="relative overflow-hidden rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 aspect-[5/6] w-full">
+            <div className="relative overflow-hidden rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-zinc-800 aspect-[4/3] lg:aspect-[5/6] w-full">
               <div className="absolute inset-0 bg-grid opacity-60" />
               <div className="absolute -left-16 -top-16 h-64 w-64 rounded-full bg-purple-500/20 blur-3xl" />
               <div className="absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-amber-500/20 blur-3xl" />

@@ -22,7 +22,7 @@ export default function LoginPage() {
   const [nombreEmpresa, setNombreEmpresa] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "verify-email">("login");
   const [rememberMe, setRememberMe] = useState(true);
 
   useEffect(() => {
@@ -99,12 +99,19 @@ export default function LoginPage() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { nombre: nombreCompleto, empresa: nombreEmpresa, rol: "encargado" } }
+          options: {
+            data: { nombre: nombreCompleto, empresa: nombreEmpresa, rol: "encargado" },
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          }
         });
         if (error) { toast.error(error.message, { id: "auth" }); return; }
-        toast.success("¡Cuenta creada! Entrando al sistema...", { id: "auth" });
-        if (data?.session) router.push("/onboarding");
-        else setMode("login");
+        if (data?.session) {
+          toast.success("¡Bienvenido! Configurando tu workspace...", { id: "auth" });
+          router.push("/onboarding");
+        } else {
+          toast.success("¡Cuenta creada! Revisa tu correo electrónico.", { id: "auth" });
+          setMode("verify-email");
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Error interno del servidor";
@@ -243,6 +250,30 @@ export default function LoginPage() {
         <section className="flex items-center">
           <div className="w-full rounded-2xl border border-border p-7 shadow-2xl backdrop-blur-xl sm:p-8" style={{ background: "rgba(255,255,255,0.02)" }}>
 
+            {mode === "verify-email" ? (
+              <div className="py-6 text-center">
+                <div className="mx-auto mb-5 grid h-16 w-16 place-items-center rounded-2xl border border-amber-500/20 bg-amber-500/10">
+                  <Mail className="h-8 w-8 text-amber-400" aria-hidden />
+                </div>
+                <h2 className="text-2xl font-semibold tracking-tight">Revisa tu correo</h2>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Enviamos un enlace de verificación a{" "}
+                  <span className="font-medium text-white">{email}</span>.
+                  Haz clic en él para activar tu cuenta y acceder al workspace.
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  ¿No llegó el correo? Revisa la carpeta de spam.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMode("login")}
+                  className="mt-7 text-sm font-medium text-primary hover:underline"
+                >
+                  ← Volver al inicio de sesión
+                </button>
+              </div>
+            ) : (
+              <>
             {/* Tabs con indicador deslizante */}
             <div className="relative grid grid-cols-2 rounded-lg border border-border p-1 text-sm" style={{ background: "rgba(255,255,255,0.03)" }}>
               {/* Indicador de posición */}
@@ -487,6 +518,8 @@ export default function LoginPage() {
                 )}
               </p>
             </div>
+              </>
+            )}
           </div>
         </section>
       </main>
