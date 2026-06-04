@@ -1,9 +1,10 @@
 import prisma from "@ruteai/database";
 import { createClient } from "@/lib/supabaseServer";
 import { redirect } from "next/navigation";
-import { Sparkles, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { PedidosTable } from "../components/PedidosTable";
+import { BotonOptimizarRutas } from "../components/BotonOptimizarRutas";
 
 export default async function PedidosPage() {
   const supabase = await createClient();
@@ -43,9 +44,7 @@ export default async function PedidosPage() {
           >
             <Plus className="h-4 w-4" /> Nuevo pedido
           </Link>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-purple-500 to-purple-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:opacity-90 transition-opacity">
-            <Sparkles className="h-4 w-4" /> Optimizar Rutas con IA
-          </button>
+          <BotonOptimizarRutas pedidos={todosLosPedidos} />
         </div>
       </div>
 

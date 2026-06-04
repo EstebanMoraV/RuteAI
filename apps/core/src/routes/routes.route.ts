@@ -1,9 +1,13 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
+import type { Request, Response, RequestHandler } from "express";
 import { RoutesService } from "../modules/routes/services/routes.service";
+import { requireAuth } from "../middlewares/auth.middleware";
 import { z } from "zod";
 
 export const routesRouter = Router();
+
+// Todas las rutas de gestión de rutas requieren autenticación
+routesRouter.use(requireAuth as RequestHandler);
 
 const CreateRouteSchema = z.object({
   empresaId:    z.string().uuid(),
@@ -18,7 +22,8 @@ const UpdateEstadoSchema = z.object({
 // GET /api/v1/routes?empresaId=xxx
 routesRouter.get("/", async (req: Request, res: Response): Promise<void> => {
   try {
-    const empresaId = req.query["empresaId"];
+    // Prioriza el empresaId del token; permite override por query para compatibilidad
+    const empresaId = (req.query["empresaId"] as string) || req.user?.empresaId;
     if (!empresaId || typeof empresaId !== "string") {
       res.status(400).json({ success: false, error: "empresaId requerido" });
       return;

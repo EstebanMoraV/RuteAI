@@ -5,6 +5,7 @@
 // ============================================================
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL;
+const AI_SERVICE_SECRET = process.env.AI_SERVICE_SECRET ?? "";
 
 // ── Tipos ────────────────────────────────────────────────────
 interface ScorePayload {
@@ -76,7 +77,10 @@ export async function obtenerScoreRiesgo(
   try {
     const response = await fetch(`${AI_SERVICE_URL}/api/score`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': AI_SERVICE_SECRET,
+      },
       body: JSON.stringify(payload),
       // Timeout de 5 segundos para no bloquear la UX
       signal: AbortSignal.timeout(5000),
