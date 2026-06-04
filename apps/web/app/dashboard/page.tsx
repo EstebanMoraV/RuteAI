@@ -1,5 +1,5 @@
 import prisma from "@ruteai/database";
-import { FormCrearPedido } from "./components/FormCrearPedido";
+import Link from "next/link";
 import { FilaPedido } from "./components/FilaPedido";
 import { createClient } from "@/lib/supabaseServer";
 import { crearEmpresaYUsuario } from "./actions";
@@ -463,34 +463,29 @@ export default async function DashboardPage() {
 
       </div>
 
-      {/* Zona Funcional Real: Formulario de Creación y Tabla de Pedidos DB */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 pt-2">
-        
-        {/* Formulario Crear Pedido */}
-        <div className="xl:col-span-1 bg-white/[0.02] border border-white/[0.04] rounded-3xl p-7 shadow-xl hover:border-zinc-750 transition-all duration-300 h-fit">
-          <h2 className="text-sm font-bold tracking-widest uppercase mb-6 text-amber-500 flex items-center gap-2">
-            <Zap className="w-4 h-4" />
-            Nuevo Despacho
-          </h2>
-          <FormCrearPedido empresaId={empresaActiva.id} />
-        </div>
-
-        {/* Listado de Pedidos Recientes */}
-        <div className="xl:col-span-2 bg-white/[0.02] border border-white/[0.04] rounded-3xl shadow-xl overflow-hidden flex flex-col hover:border-zinc-750 transition-all duration-300">
+      {/* Listado de Pedidos en Curso */}
+      <div className="pt-2">
+        <div className="bg-white/[0.02] border border-white/[0.04] rounded-3xl shadow-xl overflow-hidden flex flex-col hover:border-zinc-750 transition-all duration-300">
           <div className="px-8 py-5 border-b border-white/[0.04] flex justify-between items-center bg-zinc-950/20">
             <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-300">
-              Despachos en Curso <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full ml-2 text-xs">{pedidos.length}</span>
+              Pedidos en Curso <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-full ml-2 text-xs">{pedidos.length}</span>
             </h2>
+            <Link
+              href="/dashboard/pedidos/crear"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs px-4 py-2 transition-colors active:scale-95"
+            >
+              <Zap className="w-3.5 h-3.5" /> Nuevo pedido
+            </Link>
           </div>
-          
+
           <div className="overflow-y-auto max-h-[480px] p-6 lg:p-8 flex flex-col gap-4 bg-zinc-950/10">
             {pedidos.length === 0 ? (
               <div className="text-center flex flex-col items-center justify-center py-16 px-4">
                 <div className="w-16 h-16 mb-4 rounded-full bg-zinc-900/50 flex items-center justify-center border border-white/[0.04]">
                   <span className="text-2xl">📦</span>
                 </div>
-                <h3 className="text-zinc-300 font-semibold text-lg mb-1">Cero despachos activos</h3>
-                <p className="text-zinc-500 text-sm max-w-sm">Tu bandeja de despachos de hoy está vacía. Crea el primer pedido para iniciar la ruta.</p>
+                <h3 className="text-zinc-300 font-semibold text-lg mb-1">Cero pedidos activos</h3>
+                <p className="text-zinc-500 text-sm max-w-sm">Tu bandeja de pedidos de hoy está vacía. Crea el primer pedido para iniciar la ruta.</p>
               </div>
             ) : (
               pedidos.map((pedido) => (
@@ -499,7 +494,6 @@ export default async function DashboardPage() {
             )}
           </div>
         </div>
-
       </div>
 
     </div>

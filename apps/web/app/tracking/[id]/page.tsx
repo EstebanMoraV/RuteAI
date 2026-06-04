@@ -30,7 +30,10 @@ export default async function TrackingPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "";
+  const apiKey =
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    "";
 
   return <TrackingClient pedido={pedido} apiKey={apiKey} />;
 }

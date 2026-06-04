@@ -77,7 +77,11 @@ export function RutasMapaClient({ empresaId, empresaNombre, pedidos, ultimasUbic
     return { lat: -33.4489, lng: -70.6693 };
   }, [pedidos, ubicacion]);
 
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY || "";
+  // Acepta ambos nombres de variable por compatibilidad
+  const googleMapsApiKey =
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    "";
 
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-zinc-950 overflow-hidden">

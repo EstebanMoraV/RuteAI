@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, Sparkles, ChevronDown, UserCheck, UserX } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Search, Sparkles, ChevronDown, UserCheck, UserX,
+  MoreHorizontal, Pencil, Trash2, Send, CheckCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { eliminarPedido, asignarRepartidor } from "../actions";
+import Swal from "sweetalert2";
+import {
+  eliminarPedido, asignarRepartidor, marcarEnRuta, marcarComoEntregado,
+} from "../actions";
 
 interface Pedido {
   id: string;
@@ -29,25 +36,20 @@ export function PedidosTable({
   pedidos: Pedido[];
   repartidores: RepartidorOpt[];
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<string>("Todos");
-  const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [selectorAbierto, setSelectorAbierto] = useState<string | null>(null);
+  const [repAbierto, setRepAbierto] = useState<string | null>(null);
+  const [accionAbierto, setAccionAbierto] = useState<string | null>(null);
   const [asignando, setAsignando] = useState<string | null>(null);
-  const selectorRef = useRef<HTMLDivElement>(null);
+  const [procesando, setProcesando] = useState<string | null>(null);
 
   const filters = ["Todos", "Pendientes", "En ruta", "Entregados", "Fallidos"];
 
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (selectorRef.current && !selectorRef.current.contains(e.target as Node)) {
-        setSelectorAbierto(null);
-      }
-    }
-    if (selectorAbierto) document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [selectorAbierto]);
+  const cerrarTodo = () => {
+    setRepAbierto(null);
+    setAccionAbierto(null);
+  };
 
   const filtered = useMemo(() => {
     return pedidos.filter((p) => {
@@ -86,7 +88,7 @@ export function PedidosTable({
 
   async function handleAsignar(pedidoId: string, repartidorId: string | null) {
     setAsignando(pedidoId);
-    setSelectorAbierto(null);
+    cerrarTodo();
     try {
       const res = await asignarRepartidor(pedidoId, repartidorId);
       if (res?.error) toast.error(res.error);
@@ -98,8 +100,70 @@ export function PedidosTable({
     }
   }
 
+  async function handleEliminar(pedidoId: string) {
+    cerrarTodo();
+    const result = await Swal.fire({
+      title: "¿Eliminar pedido?",
+      text: "Esta acción no se puede deshacer.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#f43f5e",
+      cancelButtonColor: "#27272a",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      background: "#09090b",
+      color: "#f4f4f5",
+      customClass: { popup: "rounded-3xl border border-rose-500/20" },
+    });
+    if (!result.isConfirmed) return;
+
+    setProcesando(pedidoId);
+    try {
+      const res = await eliminarPedido(pedidoId);
+      if (res?.error) toast.error(res.error);
+      else toast.success("Pedido eliminado");
+    } catch {
+      toast.error("Error al eliminar el pedido");
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function handleMarcarEnRuta(pedidoId: string) {
+    cerrarTodo();
+    setProcesando(pedidoId);
+    try {
+      const res = await marcarEnRuta(pedidoId);
+      if (res?.error) toast.error(res.error);
+      else toast.success("Pedido en ruta. Cliente notificado.");
+    } catch {
+      toast.error("Error al despachar el pedido");
+    } finally {
+      setProcesando(null);
+    }
+  }
+
+  async function handleEntregar(pedidoId: string) {
+    cerrarTodo();
+    setProcesando(pedidoId);
+    try {
+      const res = await marcarComoEntregado(pedidoId);
+      if (res?.error) toast.error(res.error);
+      else toast.success("Pedido marcado como entregado");
+    } catch {
+      toast.error("Error al marcar como entregado");
+    } finally {
+      setProcesando(null);
+    }
+  }
+
   return (
     <div className="rounded-xl border border-white/[0.04] bg-white/5 overflow-hidden">
+
+      {/* Overlay para cerrar dropdowns al hacer clic afuera */}
+      {(repAbierto || accionAbierto) && (
+        <div className="fixed inset-0 z-20" onClick={cerrarTodo} />
+      )}
 
       {/* Controles */}
       <div className="flex flex-wrap items-center gap-3 border-b border-white/[0.04] p-3 bg-zinc-950/20">
@@ -160,7 +224,9 @@ export function PedidosTable({
                 const status   = getStatusBadge(o.estado);
                 const riskScore = o.scoreRiesgo ?? 0;
                 const risk     = getRiskBadge(riskScore);
-                const esteAbierto = selectorAbierto === o.id;
+                const repEsteAbierto = repAbierto === o.id;
+                const accEsteAbierto = accionAbierto === o.id;
+                const ocupado = procesando === o.id;
 
                 return (
                   <tr key={o.id} className="hover:bg-white/[0.02] transition-colors group">
@@ -189,7 +255,7 @@ export function PedidosTable({
                     {/* Selector de repartidor */}
                     <td className="px-5 py-3 relative">
                       <button
-                        onClick={() => setSelectorAbierto(esteAbierto ? null : o.id)}
+                        onClick={() => { setAccionAbierto(null); setRepAbierto(repEsteAbierto ? null : o.id); }}
                         disabled={asignando === o.id}
                         className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors hover:bg-white/5 disabled:opacity-50"
                       >
@@ -203,14 +269,11 @@ export function PedidosTable({
                         <span className={o.repartidor ? "text-white" : "italic text-zinc-600"}>
                           {o.repartidor?.nombre ?? "Sin asignar"}
                         </span>
-                        <ChevronDown className={`h-3 w-3 text-zinc-500 transition-transform ${esteAbierto ? "rotate-180" : ""}`} />
+                        <ChevronDown className={`h-3 w-3 text-zinc-500 transition-transform ${repEsteAbierto ? "rotate-180" : ""}`} />
                       </button>
 
-                      {esteAbierto && (
-                        <div
-                          ref={selectorRef}
-                          className="absolute left-4 top-full z-30 mt-1 w-48 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl py-1 overflow-hidden"
-                        >
+                      {repEsteAbierto && (
+                        <div className="absolute left-4 top-full z-30 mt-1 w-48 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl py-1 overflow-hidden">
                           <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-zinc-500 border-b border-zinc-800">
                             Asignar repartidor
                           </p>
@@ -242,14 +305,57 @@ export function PedidosTable({
                       )}
                     </td>
 
-                    {/* Acciones */}
-                    <td className="px-5 py-3 text-right">
-                      <Link
-                        href={`/dashboard/pedidos/${o.id}/editar`}
-                        className="grid h-7 w-7 place-items-center rounded-md text-zinc-500 hover:bg-white/10 hover:text-white transition-colors"
+                    {/* Menú de acciones (3 puntitos) */}
+                    <td className="px-5 py-3 text-right relative">
+                      <button
+                        onClick={() => { setRepAbierto(null); setAccionAbierto(accEsteAbierto ? null : o.id); }}
+                        disabled={ocupado}
+                        className="grid h-7 w-7 place-items-center rounded-md text-zinc-500 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50 ml-auto"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                      </Link>
+                        {ocupado ? (
+                          <span className="h-3.5 w-3.5 rounded-full border border-zinc-500 border-t-white animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-4 w-4" />
+                        )}
+                      </button>
+
+                      {accEsteAbierto && (
+                        <div className="absolute right-4 top-full z-30 mt-1 w-44 rounded-xl border border-zinc-700 bg-zinc-900 shadow-2xl py-1 overflow-hidden text-left">
+                          <Link
+                            href={`/dashboard/pedidos/${o.id}/editar`}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-zinc-300 hover:bg-white/5 hover:text-white transition-colors"
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Editar
+                          </Link>
+
+                          {o.estado === "pendiente" && (
+                            <button
+                              onClick={() => handleMarcarEnRuta(o.id)}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-blue-400 hover:bg-white/5 hover:text-blue-300 transition-colors"
+                            >
+                              <Send className="h-3.5 w-3.5" /> Despachar
+                            </button>
+                          )}
+
+                          {o.estado === "en_ruta" && (
+                            <button
+                              onClick={() => handleEntregar(o.id)}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs text-emerald-400 hover:bg-white/5 hover:text-emerald-300 transition-colors"
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" /> Marcar entregado
+                            </button>
+                          )}
+
+                          <div className="my-1 border-t border-zinc-800" />
+
+                          <button
+                            onClick={() => handleEliminar(o.id)}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
