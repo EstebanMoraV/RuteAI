@@ -18,10 +18,14 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     include: { empresa: true },
   });
 
-  // Si el usuario no existe en Prisma, significa que es nuevo y viene de Google/Registro.
-  // Lo enviamos al onboarding para crear su Empresa.
+  // Si el usuario no existe en Prisma, es nuevo → onboarding
   if (!usuarioDB) {
     redirect("/onboarding");
+  }
+
+  // super_admin no tiene empresa: su panel es /admin, no /dashboard
+  if (usuarioDB.rol === "super_admin") {
+    redirect("/admin");
   }
 
   const empresaNombre = usuarioDB.empresa?.nombre ?? "Mi Empresa";
