@@ -7,7 +7,6 @@ import {
   Map,
   Marker,
   useMapsLibrary,
-  type MapMouseEvent,
 } from "@vis.gl/react-google-maps";
 
 interface Props {
@@ -60,7 +59,8 @@ function PickerInner({
   }, [placesLib, onAddressChange]);
 
   // Click en el mapa → geocodificación inversa
-  async function handleMapClick(e: MapMouseEvent) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function handleMapClick(e: any) {
     const latLng = e.detail.latLng;
     if (!latLng || !geocodingLib) return;
     const { lat, lng } = latLng;
