@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
+import { coreUrl as obtenerCoreUrl } from "@/lib/serviceUrls";
 
 async function proxyToCore(req: NextRequest, endpoint: string) {
   const supabase = await createClient();
@@ -9,10 +10,7 @@ async function proxyToCore(req: NextRequest, endpoint: string) {
     return NextResponse.json({ success: false, error: "No autorizado" }, { status: 401 });
   }
 
-  const coreUrl = process.env.CORE_SERVICE_URL;
-  if (!coreUrl && process.env.NODE_ENV === "production") {
-    throw new Error("[CONFIG] CORE_SERVICE_URL no está definido");
-  }
+  const coreUrl = obtenerCoreUrl();
 
   const url = new URL(`${coreUrl || "http://localhost:3003"}${endpoint}`);
   req.nextUrl.searchParams.forEach((val, key) => url.searchParams.append(key, val));

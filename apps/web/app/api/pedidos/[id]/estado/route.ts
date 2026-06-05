@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseServer";
+import { coreUrl as obtenerCoreUrl } from "@/lib/serviceUrls";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -14,10 +15,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: false, error: "No autorizado" }, { status: 401 });
   }
 
-  const coreUrl = process.env.CORE_SERVICE_URL;
-  if (!coreUrl && process.env.NODE_ENV === "production") {
-    throw new Error("[CONFIG] CORE_SERVICE_URL no está definido");
-  }
+  const coreUrl = obtenerCoreUrl();
 
   const url = `${coreUrl || "http://localhost:3003"}/api/v1/orders/${id}/estado`;
 

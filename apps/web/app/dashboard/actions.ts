@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabaseServer";
 import { obtenerScoreRiesgo } from "@/lib/aiServiceClient";
 import { notificarPedidoEnRuta, notificarPedidoEntregado } from "@/lib/twilioService";
 import { geocodificarDireccion } from "@/lib/geocodingService";
+import { coreUrl as obtenerCoreUrl } from "@/lib/serviceUrls";
 
 export async function agregarPedidoNuevo(formData: FormData) {
   const cliente  = formData.get("cliente")  as string;
@@ -71,7 +72,7 @@ export async function marcarEnRuta(id: string) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { error: "No autenticado" };
 
-  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+  const coreUrl = obtenerCoreUrl();
 
   // Actualizar estado en el Core Service (fuente de verdad)
   const response = await fetch(`${coreUrl}/api/v1/orders/${id}/estado`, {
@@ -114,7 +115,7 @@ export async function marcarComoEntregado(id: string) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { error: "No autenticado" };
 
-  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+  const coreUrl = obtenerCoreUrl();
 
   // Actualizar estado en el Core Service (fuente de verdad)
   const response = await fetch(`${coreUrl}/api/v1/orders/${id}/estado`, {
@@ -157,7 +158,7 @@ export async function eliminarPedido(id: string) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { error: "No autenticado" };
 
-  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+  const coreUrl = obtenerCoreUrl();
 
   const response = await fetch(`${coreUrl}/api/v1/orders/${id}`, {
     method: "DELETE",

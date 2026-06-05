@@ -7,11 +7,9 @@
  * El microservicio auth genera sus propios logs en Vercel → ruteai-auth → Functions logs.
  */
 
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://ruteai-auth.vercel.app'
-    : 'http://localhost:3002');
+import { authUrl } from "@/lib/serviceUrls";
+
+const AUTH_SERVICE_URL = authUrl();
 
 export interface AuthLogPayload {
   userId: string;

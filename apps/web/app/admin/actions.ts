@@ -3,6 +3,7 @@
 import prisma from "@ruteai/database";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabaseServer";
+import { coreUrl as obtenerCoreUrl } from "@/lib/serviceUrls";
 
 // Helper: obtiene el token de la sesión actual y arma la llamada al Core service.
 // Las empresas se gestionan vía el Core (fuente de verdad); el Core valida super_admin.
@@ -11,7 +12,7 @@ async function coreFetch(endpoint: string, init: RequestInit) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("No autenticado");
 
-  const coreUrl = process.env.CORE_SERVICE_URL || "http://localhost:3003";
+  const coreUrl = obtenerCoreUrl();
   const response = await fetch(`${coreUrl}${endpoint}`, {
     ...init,
     headers: {
