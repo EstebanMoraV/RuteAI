@@ -69,6 +69,7 @@ model Pedido {
   lng              Float?
   producto         String
   horarioPreferido String? // Ej: "10:00 - 13:00"
+  fechaEntrega     DateTime? // Fecha/hora límite de entrega — mínimo 8 h desde creación
 
   // IA y Estado
   estado      String @default("pendiente") // pendiente | en_ruta | entregado | fallido

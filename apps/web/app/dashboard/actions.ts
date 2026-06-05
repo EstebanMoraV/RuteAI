@@ -8,13 +8,24 @@ import { notificarPedidoEnRuta, notificarPedidoEntregado } from "@/lib/twilioSer
 import { geocodificarDireccion } from "@/lib/geocodingService";
 import { coreUrl as obtenerCoreUrl } from "@/lib/serviceUrls";
 
+const HORAS_MINIMAS_ENTREGA = 8;
+
 export async function agregarPedidoNuevo(formData: FormData) {
   const cliente  = formData.get("cliente")  as string;
   const direccion = formData.get("direccion") as string;
   const producto  = formData.get("producto")  as string;
   const clienteTelefono = formData.get("clienteTelefono") as string;
-  
+  const fechaEntregaRaw = formData.get("fechaEntrega") as string;
+
   if (!cliente || !direccion || !producto) return { error: "Faltan datos" };
+
+  // Validar fecha de entrega: debe existir y estar al menos 8 h en el futuro
+  if (!fechaEntregaRaw) return { error: "Debes indicar una fecha de entrega." };
+  const fechaEntrega = new Date(fechaEntregaRaw);
+  const minimaEntrega = new Date(Date.now() + HORAS_MINIMAS_ENTREGA * 3600 * 1000);
+  if (isNaN(fechaEntrega.getTime()) || fechaEntrega < minimaEntrega) {
+    return { error: `La fecha de entrega debe ser al menos ${HORAS_MINIMAS_ENTREGA} horas desde ahora.` };
+  }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -53,11 +64,12 @@ export async function agregarPedidoNuevo(formData: FormData) {
       direccion,
       producto,
       clienteTelefono: clienteTelefono || null,
-      lat:         coords?.lat ?? null, // Guardar coordenadas reales
-      lng:         coords?.lng ?? null,
-      scoreRiesgo: scoreParaBD,
-      estado:      "pendiente",
-      empresaId:   usuarioDB.empresaId,
+      lat:          coords?.lat ?? null,
+      lng:          coords?.lng ?? null,
+      scoreRiesgo:  scoreParaBD,
+      estado:       "pendiente",
+      empresaId:    usuarioDB.empresaId,
+      fechaEntrega,
     }
   });
 
@@ -154,6 +166,15 @@ export async function marcarComoEntregado(id: string) {
 export async function eliminarPedido(id: string) {
   if (!id) return;
 
+  // Bloquear eliminación si el pedido ya está cerrado
+  const pedidoActual = await prisma.pedido.findUnique({
+    where: { id },
+    select: { estado: true },
+  });
+  if (pedidoActual?.estado === "entregado" || pedidoActual?.estado === "fallido") {
+    return { error: "No se puede eliminar un pedido entregado o fallido." };
+  }
+
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { error: "No autenticado" };
@@ -244,12 +265,20 @@ export async function asignarRepartidor(pedidoId: string, repartidorId: string |
   });
   if (!usuarioDB?.empresaId) return { error: "Usuario sin empresa" };
 
-  // Validar que el pedido pertenece a la empresa del usuario
+  // Validar que el pedido pertenece a la empresa y cumple restricción de tiempo
   const pedido = await prisma.pedido.findFirst({
     where: { id: pedidoId, empresaId: usuarioDB.empresaId },
-    select: { id: true },
+    select: { id: true, fechaEntrega: true },
   });
   if (!pedido) return { error: "Pedido no encontrado" };
+
+  // Solo validar tiempo si se está asignando (no al quitar)
+  if (repartidorId && pedido.fechaEntrega) {
+    const horasRestantes = (pedido.fechaEntrega.getTime() - Date.now()) / 3600000;
+    if (horasRestantes < HORAS_MINIMAS_ENTREGA) {
+      return { error: `No se puede asignar: quedan menos de ${HORAS_MINIMAS_ENTREGA} horas para la entrega.` };
+    }
+  }
 
   // Validar que el repartidor pertenece a la misma empresa (si se asigna uno)
   if (repartidorId) {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Route, ChevronDown, LayoutDashboard, Building2, ChartColumn, ShieldCheck, Webhook, Settings } from "lucide-react";
 
-export function SuperAdminSidebar() {
+export function SuperAdminSidebar({ nombre, email }: { nombre: string; email: string }) {
   const pathname = usePathname();
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(`${path}/`);
@@ -108,11 +108,11 @@ export function SuperAdminSidebar() {
       <div className="border-t border-zinc-800 p-3">
         <div className="flex items-center gap-2.5 rounded-lg p-2 hover:bg-white/5 transition-colors cursor-pointer">
           <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-amber-500 to-purple-600 text-xs font-bold text-white">
-            JR
+            {nombre.substring(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-medium text-white">Julián Rivera</div>
-            <div className="truncate text-[11px] text-zinc-500">julian@routeai.app</div>
+            <div className="truncate text-sm font-medium text-white">{nombre}</div>
+            <div className="truncate text-[11px] text-zinc-500">{email}</div>
           </div>
         </div>
       </div>
